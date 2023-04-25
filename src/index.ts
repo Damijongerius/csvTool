@@ -3,6 +3,7 @@ import { Csv } from "./CsvManager.js";
 import express from "express";
 import multer from "multer";
 import path from "path";
+import bodyParser from "body-parser";
 
 const app = express();
 const port = 3000;
@@ -29,8 +30,10 @@ const storage = multer.diskStorage({
 // Initialize upload middleware
 const upload = multer({ storage: storage }).single("file");
 
-app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
+
+app.use(bodyParser.urlencoded({ extended: false }));
+app.use(bodyParser.json());
 
 // Set up routes
 app.get("/", (req, res) => {
@@ -42,6 +45,7 @@ app.get("/success", (req, res) => {
 });
 
 app.post("/upload", (req, res) => {
+  console.log(req.body.publicKey);
   console.log(AuthKey);
 
   upload(req, res, (err) => {
