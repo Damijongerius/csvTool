@@ -8,6 +8,7 @@ const CsvManager_js_1 = require("./CsvManager.js");
 const express_1 = __importDefault(require("express"));
 const multer_1 = __importDefault(require("multer"));
 const path_1 = __importDefault(require("path"));
+const body_parser_1 = __importDefault(require("body-parser"));
 const app = (0, express_1.default)();
 const port = 3000;
 const AuthKey = axios_1.default
@@ -26,8 +27,9 @@ const storage = multer_1.default.diskStorage({
 });
 // Initialize upload middleware
 const upload = (0, multer_1.default)({ storage: storage }).single("file");
-app.use(express_1.default.urlencoded({ extended: true }));
 app.use(express_1.default.json());
+app.use(body_parser_1.default.urlencoded({ extended: false }));
+app.use(body_parser_1.default.json());
 // Set up routes
 app.get("/", (req, res) => {
     res.render("index");
@@ -36,6 +38,7 @@ app.get("/success", (req, res) => {
     res.render("success", { message: req.query.message });
 });
 app.post("/upload", (req, res) => {
+    console.log(req.body.publicKey);
     console.log(AuthKey);
     upload(req, res, (err) => {
         if (err) {
