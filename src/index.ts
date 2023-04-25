@@ -7,7 +7,14 @@ import path from "path";
 const app = express();
 const port = 3000;
 
-const AuthKey = "ec4b6d42-dd05-4569-bc2b-6c8b8e680d66"
+const AuthKey = axios
+  .post("https://ontwikkel.q1000.nl/authenticator/api/authenticate", {
+    apiKey: "f36ff71e-3328-464c-987a-e8ac8881221e",
+    apiSecret: "99528656-63cd-468b-8dff-ab4267bef38f",
+  })
+  .then(function (response) {
+    return response.data.authToken;
+  });
 
 const storage = multer.diskStorage({
   destination: "./uploads/",
@@ -41,14 +48,13 @@ app.post("/upload", (req, res) => {
     if (err) {
       console.error(err);
       res.send("An error occurred while uploading the file.");
-      return;
-    }
+    } else {
       let emails: String[] = [];
-      Csv.read(req.file.path, ",").then(function (data) {
+      Csv.read(req.file.path).then(function (data) {
         data.forEach((key, value) => {
           emails.push(value);
         });
-        console.log(emails);
+
         axios
           .post(
             "https://ontwikkel.q1000.nl/authenticator/api/get-users-by-emails",
@@ -58,11 +64,6 @@ app.post("/upload", (req, res) => {
             }
           )
           .then(function (response) {
-            console.log({
-              authToken: AuthKey,
-              emails: emails,
-            })
-            console.log(response.data);
             const users: object[] = response.data;
             users.forEach((id) => {
               console.log("id");
@@ -71,7 +72,7 @@ app.post("/upload", (req, res) => {
           });
       });
     }
-  );
+  });
 });
 
 // Set up view engine
