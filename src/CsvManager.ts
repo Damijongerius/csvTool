@@ -3,12 +3,12 @@ import { parse } from "csv-parse";
 import { stringify } from "csv-stringify";
 
 export class Csv {
-  public static read(directory: string): Promise<Map<String, Number>> {
+  public static read(directory: string, delimiter: string): Promise<Map<String, Number>> {
     return new Promise((resolve, reject) => {
       const data: Map<String, Number> = new Map();
 
       fs.createReadStream(directory)
-        .pipe(parse({ delimiter: ";", from_line: 2 }))
+        .pipe(parse({ delimiter: delimiter, from_line: 2 }))
         .on("data", function (row) {
           console.log(row);
           if (row && row.length > 1) {
@@ -20,6 +20,7 @@ export class Csv {
           resolve(data);
         })
         .on("error", function (err) {
+
           resolve(data);
         });
     });

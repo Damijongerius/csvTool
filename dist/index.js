@@ -10,14 +10,7 @@ const multer_1 = __importDefault(require("multer"));
 const path_1 = __importDefault(require("path"));
 const app = (0, express_1.default)();
 const port = 3000;
-const AuthKey = axios_1.default
-    .post("https://ontwikkel.q1000.nl/authenticator/api/authenticate", {
-    apiKey: "f36ff71e-3328-464c-987a-e8ac8881221e",
-    apiSecret: "99528656-63cd-468b-8dff-ab4267bef38f",
-})
-    .then(function (response) {
-    return response.data.authToken;
-});
+const AuthKey = "ec4b6d42-dd05-4569-bc2b-6c8b8e680d66";
 const storage = multer_1.default.diskStorage({
     destination: "./uploads/",
     filename: (req, file, cb) => {
@@ -41,27 +34,32 @@ app.post("/upload", (req, res) => {
         if (err) {
             console.error(err);
             res.send("An error occurred while uploading the file.");
+            return;
         }
-        else {
-            let emails = [];
-            CsvManager_js_1.Csv.read(req.file.path).then(function (data) {
-                data.forEach((key, value) => {
-                    emails.push(value);
-                });
-                axios_1.default
-                    .post("https://ontwikkel.q1000.nl/authenticator/api/get-users-by-emails", {
+        let emails = [];
+        CsvManager_js_1.Csv.read(req.file.path, ",").then(function (data) {
+            data.forEach((key, value) => {
+                emails.push(value);
+            });
+            console.log(emails);
+            axios_1.default
+                .post("https://ontwikkel.q1000.nl/authenticator/api/get-users-by-emails", {
+                authToken: AuthKey,
+                emails: emails,
+            })
+                .then(function (response) {
+                console.log({
                     authToken: AuthKey,
                     emails: emails,
-                })
-                    .then(function (response) {
-                    const users = response.data;
-                    users.forEach((id) => {
-                        console.log("id");
-                    });
-                    //res.redirect(`/success`);
                 });
+                console.log(response.data);
+                const users = response.data;
+                users.forEach((id) => {
+                    console.log("id");
+                });
+                //res.redirect(`/success`);
             });
-        }
+        });
     });
 });
 // Set up view engine

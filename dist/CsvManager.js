@@ -8,11 +8,11 @@ const fs_1 = __importDefault(require("fs"));
 const csv_parse_1 = require("csv-parse");
 const csv_stringify_1 = require("csv-stringify");
 class Csv {
-    static read(directory) {
+    static read(directory, delimiter) {
         return new Promise((resolve, reject) => {
             const data = new Map();
             fs_1.default.createReadStream(directory)
-                .pipe((0, csv_parse_1.parse)({ delimiter: ";", from_line: 2 }))
+                .pipe((0, csv_parse_1.parse)({ delimiter: delimiter, from_line: 2 }))
                 .on("data", function (row) {
                 console.log(row);
                 if (row && row.length > 1) {
