@@ -11,14 +11,6 @@ const path_1 = __importDefault(require("path"));
 const body_parser_1 = __importDefault(require("body-parser"));
 const app = (0, express_1.default)();
 const port = 3000;
-const AuthKey = axios_1.default
-    .post("https://ontwikkel.q1000.nl/authenticator/api/authenticate", {
-    apiKey: "f36ff71e-3328-464c-987a-e8ac8881221e",
-    apiSecret: "99528656-63cd-468b-8dff-ab4267bef38f",
-})
-    .then(function (response) {
-    return response.data.authToken;
-});
 const storage = multer_1.default.diskStorage({
     destination: "./uploads/",
     filename: (req, file, cb) => {
@@ -37,31 +29,22 @@ app.get("/", (req, res) => {
 app.get("/success", (req, res) => {
     res.render("success", { message: req.query.message });
 });
-app.post("/upload", (req, res) => {
-    console.log(req.body.publicKey);
-    console.log(AuthKey);
+app.post("/upload", async (req, res) => {
+    console.log(req.body);
+    let emails = [];
+    let AuthKey = await getAuthKey(req.body.publicKey, req.body.privateKey);
     upload(req, res, (err) => {
         if (err) {
             console.error(err);
             res.send("An error occurred while uploading the file.");
         }
         else {
-            let emails = [];
             CsvManager_js_1.Csv.read(req.file.path).then(function (data) {
                 data.forEach((key, value) => {
                     emails.push(value);
                 });
-                axios_1.default
-                    .post("https://ontwikkel.q1000.nl/authenticator/api/get-users-by-emails", {
-                    authToken: AuthKey,
-                    emails: emails,
-                })
-                    .then(function (response) {
-                    const users = response.data;
-                    users.forEach((id) => {
-                        console.log("id");
-                    });
-                    //res.redirect(`/success`);
+                let Users = getUsers(emails, AuthKey).then(function (users) {
+                    //console.log(users);
                 });
             });
         }
@@ -78,4 +61,18 @@ app.use(express_1.default.static(path_1.default.join(__dirname, "public")));
 app.listen(port, () => {
     console.log(`Server listening on port ${port}`);
 });
+async function getAuthKey(apiKey, apiSecret) {
+    const key = await axios_1.default.post("https://ontwikkel.q1000.nl/authenticator/api/authenticate", {
+        apiKey: apiKey,
+        apiSecret: apiSecret,
+    });
+    return key.data.authToken;
+}
+async function getUsers(emails, authKey) {
+    const response = await axios_1.default.post("https://ontwikkel.q1000.nl/authenticator/api/get-users-by-emails", {
+        authToken: authKey,
+        emails: emails,
+    });
+    return response.data.users;
+}
 //# sourceMappingURL=index.js.map
