@@ -25,6 +25,22 @@ app.get("/success", (req, res) => {
   res.render("success", { message: req.query.message });
 });
 
+process.on('exit', (code) => {
+  // Cleanup code here
+  console.log(`Exiting with code: ${code}`);
+});
+
+process.on('SIGTERM' || 'SIGINT', () => {
+  // Graceful shutdown code here
+  console.log('Received SIGTERM. Gracefully shutting down...');
+  // Perform cleanup tasks, close connections, etc.
+  server.close(() => {
+    console.log('Server closed.');
+    process.exit(0);
+  });
+});
+
+
 app.post('/setEssentials', async (req,res) => {
   if(!req.body.publicKey || !req.body.privateKey || !req.body.identityProvider){
     res.redirect('/');
@@ -83,7 +99,7 @@ app.post('/upload', upload.single('file'),async (req, res) => {
 
 
 // Start the server
-app.listen(port, () => {
+const server = app.listen(port, () => {
   console.log(`Server listening on port ${port}`);
 });
 

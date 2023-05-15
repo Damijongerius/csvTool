@@ -2,6 +2,32 @@ doctype html
 html
   head
     title Editor Page
+    script.
+      function updateUser(userId) {
+        const id = document.querySelector(`input[name="id"][value="${userId}"]`).value;
+        const username = document.querySelector(`input[name="username"][value="${userId}"]`).value;
+        const email = document.querySelector(`input[name="email"][value="${userId}"]`).value;
+        const externalId = document.querySelector(`input[name="externalId"][value="${userId}"]`).value;
+
+        // Create an HTTP request to submit the form data
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', '/update-user');
+        xhr.setRequestHeader('Content-Type', 'application/json');
+
+        // Send the form data as JSON
+        xhr.send(JSON.stringify({ id, username, email, externalId }));
+
+        // Handle the server's response
+        xhr.onload = function () {
+          if (xhr.status === 200) {
+            console.log(xhr.responseText);
+            // Handle the success response
+          } else {
+            console.error(xhr.statusText);
+            // Handle the error response
+          }
+        };
+      }
 
   body
     h1 Editor Page
