@@ -1,81 +1,174 @@
-import axios from "axios";
-import { Csv } from "./CsvManager.js";
-import express from "express";
-import multer from "multer";
-import path from "path";
-import bodyParser from "body-parser";
+import { Essentials } from './essentials';
+const axios = require("axios");
+const express = require("express");
+const multer = require("multer");
+const path = require("path");
+const { Csv } = require("./CsvManager.js");
 
-const app = express();
 const port = 3000;
+const app = express();
+const upload = multer({ dest: 'uploads/' });
 
-const storage = multer.diskStorage({
-  destination: "./uploads/",
-  filename: (req, file, cb) => {
-    cb(
-      null,
-      file.fieldname + "-" + Date.now() + path.extname(file.originalname)
-    );
-  },
-});
+let essentials : Essentials;
 
-// Initialize upload middleware
-const upload = multer({ storage: storage }).single("file");
+app.set("views", path.join(__dirname, "views"));
+app.set("view engine", "pug");
 
-app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(express.static(path.join(__dirname, "public")));
 
-app.use(bodyParser.urlencoded({ extended: false }));
-app.use(bodyParser.json());
-
-// Set up routes
-app.get("/", (req, res) => {
-  res.render("index");
+app.get('/', (req, res) => {
+  res.render('index');
 });
 
 app.get("/success", (req, res) => {
   res.render("success", { message: req.query.message });
 });
 
-app.post("/upload", async (req, res) => {
+app.post('/setEssentials', async (req,res) => {
+  if(!req.body.publicKey || !req.body.privateKey || !req.body.identityProvider){
+    res.redirect('/');
+  }
 
-  console.log(req.body);
+  const key = await getAuthKey(req.body.publicKey, req.body.privateKey);
 
-  let emails: String[] = [];
+  essentials = new Essentials(key ,req.body.identityProvider);
+  const identityProvider = req.body.identityProvider;
+  const publickey = req.body.publicKey;
 
-  let AuthKey = await getAuthKey(req.body.publicKey, req.body.privateKey);
-
-  upload(req, res, (err) => {
-    if (err) {
-      console.error(err);
-      res.send("An error occurred while uploading the file.");
-    } else {
-      Csv.read(req.file.path).then(function (data) {
-        data.forEach((key, value) => {
-          emails.push(value);
-        });
-
-        let Users = getUsers(emails, AuthKey).then(function (users) {
-          //console.log(users);
-        });
-      });
-
-    }
-  });
+  res.render('index', {publickey , identityProvider});
 });
 
-// Set up view engine
-app.set("views", path.join(__dirname, "views"));
-app.set("view engine", "pug");
+app.get('/externalId', (req,res) =>{
 
-// Set up body-parser middleware
-app.use(express.urlencoded({ extended: true }));
+  if(essentials == null || !essentials.authKey || !essentials.identityProvider){
+    return res.redirect('/')
+  }
 
-// Serve static files from the public directory
-app.use(express.static(path.join(__dirname, "public")));
+  res.render('externalId');
+});
+
+app.get('/userInserter', (req,res) =>{
+
+  if(essentials == null || !essentials.authKey || !essentials.identityProvider){
+    return res.redirect('/')
+  }
+
+  res.render('userInserter');
+});
+
+app.post('/upload', upload.single('file'),async (req, res) => {
+  const file = req.file;
+
+  if (!file) {
+    return res.render('externalId');
+  }
+
+  const filePath = file.path;
+
+  const emails = await csvToEmails(filePath);
+
+  const users = await getUsers(emails, essentials.authKey);
+
+  const duplicates = await RemoveDuplicateEmails(users);
+
+  const externals = await HasExternalId(duplicates.include, essentials.authKey);
+
+  const externalset = await SetExternalIds(externals.usersWithoutExternalId, await readCsv(filePath));
+
+  const conflictedUsers = await convertUsers(externals.usersWithExternalId);
+  const successfulUsers = await convertUsers(externalset);
+  res.render('editor', { conflictedUsers, successfulUsers });
+});
+
 
 // Start the server
 app.listen(port, () => {
   console.log(`Server listening on port ${port}`);
 });
+
+async function RemoveDuplicateEmails(users: { email: string }[]) {
+
+  const uniqueEmails = [...new Set(users.map(user => user.email))];
+
+  const exclude = users.filter((user, index, arr) => {
+    return arr.filter(u => u.email === user.email).length > 1;
+  }).map(user => user.email);
+
+  const include = uniqueEmails.filter(email => {
+    return !exclude.includes(email);
+  });
+
+  const uniqueExclude = [...new Set(exclude)];
+
+  const result: { 
+    exclude: { email: string }[]; 
+    include: { email: string }[];
+  } = {
+    exclude: [],
+    include: []
+  };
+
+  users.forEach(user => {
+    if (uniqueExclude.includes(user.email)) {
+      result.exclude.push(user);
+    }
+    else if (include.includes(user.email)) {
+      result.include.push(user);
+    }
+  });
+
+  return result;
+}
+
+async function SetExternalIds(users , csvData: Map<string,String>){
+  let data = new Map();
+  csvData.forEach((key, value) => {
+    users.forEach(user => {
+      if(value == user.email){
+        data.set(user, key);
+        setExternalId(essentials.authKey,user.id,essentials.identityProvider,key);
+      }
+    });
+  });
+
+  return data;
+}
+
+async function HasExternalId(users, authToken: string) {
+  const userIds = users.map(user => user.id);
+
+  const result = await axios.post(
+    "https://ontwikkel.q1000.nl/authenticator/api/get-users-external-ids",
+    {
+      authToken: authToken,
+      userIds: userIds,
+    }
+  );
+
+  const usersWithExternalId = new Map();
+  let usersWithoutExternalId = [];
+
+  if (result.data.usersExternalIds && result.data.usersExternalIds.length > 0) {
+    users.forEach(user => {
+      result.data.usersExternalIds.forEach(external => {
+        if(user.id == external.authUserId){
+          if(external.externalId != 0){
+            usersWithExternalId.set(user, external.externalId);
+          }
+          else if(!usersWithoutExternalId.includes(user)){
+            usersWithoutExternalId.push(user);
+          }
+        }
+      });
+
+    });
+  }else{
+    usersWithoutExternalId = users; 
+  }
+
+  return { usersWithExternalId, usersWithoutExternalId };
+}
 
 async function getAuthKey(apiKey, apiSecret) {
   const key = await axios.post(
@@ -85,9 +178,27 @@ async function getAuthKey(apiKey, apiSecret) {
       apiSecret: apiSecret,
     }
   );
-
   return key.data.authToken;
 }
+
+async function csvToEmails(path){
+  let emails = [];
+  let data = await Csv.read(path);
+
+  data.forEach((key, value) => {
+    emails.push(value);
+  });
+
+  return emails;
+}
+
+async function readCsv(path){
+  let emails = [];
+  let data = await Csv.read(path);
+
+  return data;
+}
+
 
 async function getUsers(emails: String[], authKey) {
   const response = await axios.post(
@@ -97,5 +208,33 @@ async function getUsers(emails: String[], authKey) {
       emails: emails,
     }
   );
+
   return response.data.users;
+};
+
+async function setExternalId(authKey, userId, identityProvider, externalId){
+  const response = await axios.post(
+    "https://ontwikkel.q1000.nl/authenticator/api/set-user-external-id",
+    {
+      authToken: authKey,
+      userId: userId,
+      identityProvider: identityProvider,
+      externalId: externalId
+    }
+  );
+  return response.data.users;
+}
+
+async function convertUsers(users){
+  let newUsers = [];
+  users.forEach((key,value) => {
+    newUsers.push(
+      {
+        id: value.id,
+        username: value.username,
+        email: value.email,
+        externalId: key
+      })
+  });
+  return newUsers;
 }

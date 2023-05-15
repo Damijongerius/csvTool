@@ -14,7 +14,6 @@ class Csv {
             fs_1.default.createReadStream(directory)
                 .pipe((0, csv_parse_1.parse)({ delimiter: ";", from_line: 2 }))
                 .on("data", function (row) {
-                console.log(row);
                 if (row && row.length > 1) {
                     // skip empty rows
                     data.set(row[0], row[1]);

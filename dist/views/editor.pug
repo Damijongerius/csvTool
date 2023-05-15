@@ -1,0 +1,42 @@
+doctype html
+html
+  head
+    title Editor Page
+
+  body
+    h1 Editor Page
+    ul
+      li
+        a(href="#conflicted") Conflicted
+      li
+        a(href="#successful") Successful
+
+    // Conflicted Users Tab
+    #conflicted.tab-content
+      h2 Conflicted Users
+      table
+        tbody
+          each user in conflictedUsers
+            tr
+              td
+                // Add input fields for changing fields
+                input(type="text" name="id" value=user.id)
+                input(type="text" name="username" value=user.username)
+                input(type="text" name="email" value=user.email)
+                input(type="text" name="externalId" value=user.externalId)
+                button(type="button" onclick="updateUser('#{user.id}')") Update
+
+    // Successful Users Tab
+    #successful.tab-content
+      h2 Successful Users
+      table
+        tbody
+          each user in successfulUsers
+            tr
+              td
+                // Add input fields for changing fields
+                input(type="text" name="id" value=user.id)
+                input(type="text" name="username" value=user.username)
+                input(type="text" name="email" value=user.email)
+                input(type="text" name="externalId" value=user.externalId)
+                button(type="button" onclick="updateUser('#{user.id}')") Update

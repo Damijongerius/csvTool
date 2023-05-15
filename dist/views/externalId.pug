@@ -1,0 +1,11 @@
+doctype html
+html
+  head
+    title File Upload
+  body
+    h1 File Upload
+    .foldable-container
+      form(action='/upload', method='POST', enctype='multipart/form-data')
+        label(for='file') Choose a file:
+        input(type='file', id='file', name='file')
+        button(type='submit') Upload
