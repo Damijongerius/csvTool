@@ -5,6 +5,7 @@ html
 
   body
     h1 Keys 
+    h5 #{message}
     div.foldable-container
       form(action='/setEssentials', method='POST')
         div.input-container
@@ -12,7 +13,7 @@ html
           input(type='text', id='publicKey', name='publicKey', value=publickey)
         div.input-container
           label(for='privateKey') Private Key:
-          input(type='text', id='privateKey', name='privateKey')
+          input(type='text', id='privateKey', name='privateKey', value=privateKey)
         div.input-container
           label(for='identityProvider') Identity Provider:
           input(type='text', id='identityProvider', name='identityProvider', value=identityProvider)

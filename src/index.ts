@@ -18,7 +18,8 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, "public")));
 
 app.get('/', (req, res) => {
-  res.render('index');
+  const { message } = req.query;
+  res.render('index', {message});
 });
 
 app.get("/success", (req, res) => {
@@ -42,23 +43,33 @@ process.on('SIGTERM' || 'SIGINT', () => {
 
 
 app.post('/setEssentials', async (req,res) => {
+  let message = "fill all the fields pls";
   if(!req.body.publicKey || !req.body.privateKey || !req.body.identityProvider){
-    res.redirect('/');
+    res.redirect(`/?message=${message}`);
   }
 
-  const key = await getAuthKey(req.body.publicKey, req.body.privateKey);
-
-  essentials = new Essentials(key ,req.body.identityProvider);
+  const response = await getAuthKey(req.body.publicKey, req.body.privateKey);
   const identityProvider = req.body.identityProvider;
   const publickey = req.body.publicKey;
+  const privateKey = req.body.privateKey;
 
-  res.render('index', {publickey , identityProvider});
+  console.log(response);
+  if(response.errors[0] != null && response.errors[0].message != null){
+    message = response.errors[0].message;
+    res.render('index', {publickey, identityProvider, message, privateKey});
+  }else{
+    essentials = new Essentials(response.authToken ,req.body.identityProvider);
+
+    message = "sucessfully aquired a key";
+    res.render('index', {publickey , identityProvider,message});
+  }
 });
 
 app.get('/externalId', (req,res) =>{
 
   if(essentials == null || !essentials.authKey || !essentials.identityProvider){
-    return res.redirect('/')
+    let error = "no valid key or no identityProvider"
+    res.redirect(`/?message=${error}`);
   }
 
   res.render('externalId');
@@ -67,7 +78,8 @@ app.get('/externalId', (req,res) =>{
 app.get('/userInserter', (req,res) =>{
 
   if(essentials == null || !essentials.authKey || !essentials.identityProvider){
-    return res.redirect('/')
+    let error = "no valid key or no identityProvider"
+    res.redirect(`/?message=${error}`);
   }
 
   res.render('userInserter');
@@ -94,8 +106,17 @@ app.post('/upload', upload.single('file'),async (req, res) => {
 
   const conflictedUsers = await convertUsers(externals.usersWithExternalId);
   const successfulUsers = await convertUsers(externalset);
+
+  console.log(conflictedUsers);
+  console.log(successfulUsers);
   res.render('editor', { conflictedUsers, successfulUsers });
 });
+
+app.post('/forceUpload', async (req,res) =>{
+  setEmail(essentials.authKey,req.body.id,req.body.email);
+  setUserName(essentials.authKey,req.body.id,1);
+  console.log(req.body);
+})
 
 
 // Start the server
@@ -138,6 +159,7 @@ async function RemoveDuplicateEmails(users: { email: string }[]) {
 }
 
 async function SetExternalIds(users , csvData: Map<string,String>){
+
   let data = new Map();
   csvData.forEach((key, value) => {
     users.forEach(user => {
@@ -194,7 +216,7 @@ async function getAuthKey(apiKey, apiSecret) {
       apiSecret: apiSecret,
     }
   );
-  return key.data.authToken;
+  return key.data;
 }
 
 async function csvToEmails(path){
@@ -239,6 +261,33 @@ async function setExternalId(authKey, userId, identityProvider, externalId){
     }
   );
   return response.data.users;
+}
+
+async function setEmail(authKey, userId, email){
+  const response = await axios.post(
+    "https://ontwikkel.q1000.nl/authenticator/api/edituser",
+    {
+      authToken: authKey,
+      q4youID: userId,
+      email: email
+    }
+  );
+  console.log(response.data);
+  return response.data;
+}
+
+async function setUserName(authKey, userId, values){
+  const response = await axios.post(
+    "https://ontwikkel.q1000.nl/q4u/api/getvalues",
+    {
+      authToken: authKey,
+      userId: userId,
+      itemType: 21,
+      //values: values
+    }
+  );
+  console.log(response.data);
+  return response.data;
 }
 
 async function convertUsers(users){

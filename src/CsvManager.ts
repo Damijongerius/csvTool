@@ -8,7 +8,7 @@ export class Csv {
       const data: Map<String, Number> = new Map();
 
       fs.createReadStream(directory)
-        .pipe(parse({ delimiter: ";", from_line: 2 }))
+        .pipe(parse({ delimiter: [";",","], from_line: 2 }))
         .on("data", function (row) {
           if (row && row.length > 1) {
             // skip empty rows
