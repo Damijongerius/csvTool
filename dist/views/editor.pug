@@ -22,10 +22,10 @@ html
                 // Form for updating user
                 form(action="/forceUpload" method="POST")
                   input(type="hidden" name="id" value=user.id)
-                  input(type="hidden" name="id" value=user.userType)
-                  input(type="text" name="username" value=user.username)
+                  input(type="text" name="username" value=user.username readonly)
                   input(type="text" name="email" value=user.email)
                   input(type="text" name="externalId" value=user.externalId)
+                  input(type="text" name="userType" value=user.userType readonly)
                   button(type="submit") Update
 
     // Successful Users Tab
@@ -39,7 +39,7 @@ html
                 // Form for updating user
                 form(action="/forceUpload" method="POST")
                   input(type="hidden" name="id" value=user.id)
-                  input(type="hidden" name="id" value=user.userType)
+                  input(type="hidden" name="userType" value=user.userType)
                   input(type="text" name="username" value=user.username)
                   input(type="text" name="email" value=user.email)
                   input(type="text" name="externalId" value=user.externalId)

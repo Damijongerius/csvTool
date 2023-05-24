@@ -92,6 +92,7 @@ app.post("/upload", upload.single("file"), async (req, res) => {
     res.render("editor", { conflictedUsers, successfulUsers });
 });
 app.post("/forceUpload", async (req, res) => {
+    console.log(req.body);
     console.log("-----------------------");
     await setExternalId(essentials.authKey, req.body.id, essentials.identityProvider, req.body.externalId);
     console.log("-----------------------");
@@ -233,15 +234,6 @@ async function setExternalId(authKey, userId, identityProvider, externalId) {
     });
     return response.data.users;
 }
-async function setUserEmail(authKey, userId, email) {
-    const response = await axios.post("https://ontwikkel.q1000.nl/authenticator/api/edituser", {
-        authToken: authKey,
-        q4youID: userId,
-        email: email,
-    });
-    console.log(response.data);
-    return response.data;
-}
 async function setConsultantEmail(authKey, userId, email) {
     const response = await axios.post("https://ontwikkel.q1000.nl/authenticator/api/editconsultant", {
         authToken: authKey,
@@ -251,11 +243,30 @@ async function setConsultantEmail(authKey, userId, email) {
     console.log(response.data);
     return response.data;
 }
+async function setUserEmail(authKey, userId, email) {
+    console.log({
+        authToken: authKey,
+        q4youID: userId,
+        email: email
+    });
+    const response = await axios.post("https://ontwikkel.q1000.nl/authenticator/api/edituser", {
+        authToken: authKey,
+        q4youID: userId,
+        email: email
+    });
+    console.log(response.data);
+    return response.data;
+}
 async function setUserName(authKey, userId, values) {
+    console.log({
+        authToken: authKey,
+        q4youID: userId,
+        email: values
+    });
     const response = await axios.post("https://ontwikkel.q1000.nl/q4u/api/getvalues", {
         authToken: authKey,
         q4youID: userId,
-        itemType: 22,
+        itemType: 1,
         //values: values
     });
     console.log(response.data);
