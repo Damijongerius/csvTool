@@ -65,10 +65,10 @@ app.get("/externalId", (req, res) => {
         logger.log("error");
         res.redirect(`/?message=${error}`);
     }
-    logger.log("render");
+    logger.log("render externalId");
     res.render("externalId");
 });
-app.get("/userInserter", (req, res) => {
+app.get("/userInserter", async (req, res) => {
     if (essentials == null ||
         !essentials.authKey ||
         !essentials.identityProvider) {
@@ -77,7 +77,25 @@ app.get("/userInserter", (req, res) => {
         res.redirect(`/?message=${error}`);
     }
     logger.log("render UserInsterter");
-    res.render("userInserter");
+    const users = await getAllUsers(essentials.authKey);
+    const ids = [];
+    users.forEach(user => {
+        ids.push(user.id);
+    });
+    const UserExternalIds = await getAllExternalIds(essentials.authKey, ids);
+    users.forEach(user => {
+        const matchingExternalId = UserExternalIds.find(externalId => externalId.authUserId === user.id);
+        if (matchingExternalId) {
+            user.externalId = matchingExternalId.externalId;
+            console.log("hi");
+        }
+    });
+    const conflictedUsers = await convertUsersV2(users, { email: true, id: true });
+    const successfulUsers = [];
+    essentials.conflictedUsers = conflictedUsers;
+    essentials.successfullUsers = successfulUsers;
+    logger.log("render editor");
+    res.render("editor", { conflictedUsers, successfulUsers });
 });
 app.post("/upload", upload.single("file"), async (req, res) => {
     const file = req.file;
@@ -91,8 +109,19 @@ app.post("/upload", upload.single("file"), async (req, res) => {
     const duplicates = await RemoveDuplicateEmails(users);
     const externals = await HasExternalId(duplicates.include, essentials.authKey);
     const externalset = await SetExternalIds(externals.usersWithoutExternalId, await readCsv(filePath));
-    const conflictedUsers = await convertUsers(externals.usersWithExternalId);
-    const successfulUsers = await convertUsers(externalset);
+    let csvData = await readCsv(filePath);
+    let dups = new Map();
+    csvData.forEach((key, value) => {
+        duplicates.exclude.forEach((user) => {
+            let email = user.email;
+            if (value.toLowerCase == email.toLowerCase) {
+                dups.set(user, key);
+            }
+        });
+    });
+    const conflictedUniqueUsers = await convertUsers(externals.usersWithExternalId, { email: true, id: false });
+    const conflictedUsers = conflictedUniqueUsers.concat(await convertUsers(dups, { email: false, id: false }));
+    const successfulUsers = await convertUsers(externalset, { email: true, id: true });
     essentials.conflictedUsers = conflictedUsers;
     essentials.successfullUsers = successfulUsers;
     logger.log("render editor");
@@ -163,7 +192,6 @@ async function SetExternalIds(users, csvData) {
     csvData.forEach((key, value) => {
         users.forEach((user) => {
             let email = user.email;
-            console.log(email.toLowerCase + "--" + value.toLowerCase);
             if (value.toLowerCase == email.toLowerCase) {
                 data.set(user, key);
                 setExternalId(essentials.authKey, user.id, essentials.identityProvider, key);
@@ -225,6 +253,21 @@ async function getUsers(emails, authKey) {
     logger.log(response.data);
     return response.data.users;
 }
+async function getAllUsers(authKey) {
+    const response = await axios.post("https://ontwikkel.q1000.nl/authenticator/api/getusers", {
+        authToken: authKey,
+    });
+    logger.log(response.data);
+    return response.data.users;
+}
+async function getAllExternalIds(authKey, userIds) {
+    const response = await axios.post("https://ontwikkel.q1000.nl/authenticator/api/get-users-external-ids", {
+        authToken: authKey,
+        userIds: userIds
+    });
+    logger.log(response.data);
+    return response.data.usersExternalIds;
+}
 async function setExternalId(authKey, userId, identityProvider, externalId) {
     const response = await axios.post("https://ontwikkel.q1000.nl/authenticator/api/set-user-external-id", {
         authToken: authKey,
@@ -263,7 +306,7 @@ async function setUserName(authKey, userId, values) {
     logger.log(response.data);
     return response.data;
 }
-async function convertUsers(users) {
+async function convertUsers(users, success) {
     let newUsers = [];
     users.forEach((key, value) => {
         newUsers.push({
@@ -272,17 +315,36 @@ async function convertUsers(users) {
             email: value.email,
             externalId: key,
             userType: value.userType,
+            success: success
         });
     });
     return newUsers;
 }
-async function convertToUser(id, username, email, externalId, userType) {
+async function convertUsersV2(users, success) {
+    let newUsers = [];
+    users.forEach(user => {
+        newUsers.push({
+            id: user.id,
+            username: user.userName,
+            email: user.email,
+            externalId: user.externalId,
+            userType: user.userType,
+            success: success
+        });
+    });
+    return newUsers;
+}
+async function convertToUser(id, username, email, externalId, userType, successId, sucessEmail) {
     return {
         id: id,
         username: username,
         email: email,
         externalId: externalId,
         userType: userType,
+        errors: {
+            email: sucessEmail,
+            externalId: successId
+        }
     };
 }
 //# sourceMappingURL=index.js.map

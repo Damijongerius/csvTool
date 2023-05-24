@@ -52,6 +52,9 @@ html
         border: none;
         cursor: pointer;
       }
+      .red {
+        color: red;
+      }
   body
     h1 Editor Page
     ul
@@ -72,8 +75,8 @@ html
                 form(action="/forceUpload" method="POST")
                   input(type="hidden" name="id" value=user.id)
                   input(type="text" name="username" value=user.username readonly)
-                  input(type="text" name="email" value=user.email)
-                  input(type="text" name="externalId" value=user.externalId)
+                  input(type="text" name="email" value=user.email class=user.success.email ? '' : 'red')
+                  input(type="text" name="externalId" value=user.externalId class=user.success.id ? '' : 'red')
                   input(type="text" name="userType" value=user.userType readonly)
                   button(type="submit") Update
 
