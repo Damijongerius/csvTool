@@ -2,28 +2,116 @@ doctype html
 html
   head
     title Q4LazyPeople
-
+    style.
+      body {
+        font-family: Arial, sans-serif;
+        margin: 20px;
+      }
+      h1 {
+        font-size: 24px;
+        font-weight: bold;
+        margin-bottom: 10px;
+      }
+      h2 {
+        font-size: 20px;
+        font-weight: bold;
+        margin-top: 20px;
+        margin-bottom: 10px;
+      }
+      h5 {
+        font-size: 16px;
+        margin-bottom: 20px;
+      }
+      label {
+        display: block;
+        font-weight: bold;
+        margin-bottom: 5px;
+      }
+      input[type="text"] {
+        width: 300px;
+        padding: 5px;
+      }
+      button {
+        padding: 15px 25%;
+        background-color: #007BFF;
+        color: white;
+        border: none;
+        cursor: pointer;
+      }
+      .foldable-container {
+        margin-bottom: 20px;
+      }
+      .input-container {
+        margin-bottom: 10px;
+      }
+      ul {
+        list-style-type: none;
+        padding-left: 0;
+      }
+      li {
+        margin-bottom: 5px;
+      }
+      a {
+        text-decoration: none;
+        color: #007BFF;
+      }
+      .center-content {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+      .foldable-container {
+        margin-bottom: 20px;
+      }
+      .input-container {
+        margin-bottom: 10px;
+      }
+      .button-container {
+        text-align: center;
+      }
+      .user-management {
+        text-align: center;
+      }
+      .link-block {
+        display: inline-block;
+        margin-top: 10px;
+        padding: 10px;
+        border: 1px solid #007BFF;
+        border-radius: 5px;
+        transition: all 0.3s ease;
+      }
+      .block-link {
+        text-decoration: none;
+        color: #007BFF;
+        transition: all 0.3s ease;
+      }
+      .link-block:hover {
+        background-color: #007BFF;
+      }
+      .link-block:hover .block-link {
+        color: white;
+      }
   body
-    h1 Keys 
-    h5 #{message}
-    div.foldable-container
-      form(action='/setEssentials', method='POST')
-        div.input-container
-          label(for='publicKey') Public Key:
-          input(type='text', id='publicKey', name='publicKey', value=publickey)
-        div.input-container
-          label(for='privateKey') Private Key:
-          input(type='text', id='privateKey', name='privateKey', value=privateKey)
-        div.input-container
-          label(for='identityProvider') Identity Provider:
-          input(type='text', id='identityProvider', name='identityProvider', value=identityProvider)
-        button(type='submit') Set
+    div.center-content
+      h1 Keys 
+      h5 #{message}
+      div.foldable-container
+        form(action='/setEssentials', method='POST')
+          div.input-container
+            label(for='publicKey') Public Key:
+            input(type='text', id='publicKey', name='publicKey', value=publickey)
+          div.input-container
+            label(for='privateKey') Private Key:
+            input(type='text', id='privateKey', name='privateKey', value=privateKey)
+          div.input-container
+            label(for='identityProvider') Identity Provider:
+            input(type='text', id='identityProvider', name='identityProvider', value=identityProvider)
+          div.button-container
+            button(type='submit') Set
 
-    h1 User Management
-
-    h2 Inserters
-    ul
-      li
-        a(href="/externalId") External ID
-      li
-        a(href="/userInserter") User
+      div.user-management
+        h1 User Management
+        div.link-block
+          a.block-link(href="/externalId") External ID
+        div.link-block
+          a.block-link(href="/userInserter") User

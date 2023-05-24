@@ -2,7 +2,56 @@ doctype html
 html
   head
     title Editor Page
-
+    style.
+      body {
+        font-family: Arial, sans-serif;
+        margin: 20px;
+      }
+      h1 {
+        font-size: 24px;
+        font-weight: bold;
+        margin-bottom: 10px;
+      }
+      ul {
+        list-style-type: none;
+        padding-left: 0;
+      }
+      li {
+        display: inline-block;
+        margin-right: 10px;
+      }
+      a {
+        text-decoration: none;
+        color: #007BFF;
+      }
+      a:hover {
+        text-decoration: underline;
+      }
+      table {
+        font-family: Arial, sans-serif;
+        border-collapse: collapse;
+        width: 100%;
+      }
+      th, td {
+        padding: 5px;
+        text-align: left;
+        border-bottom: 1px solid #ddd;
+      }
+      form {
+        display: flex;
+        align-items: center;
+      }
+      input[type="text"] {
+        padding: 2px 3px;
+      }
+      button {
+        margin: 0px 3px;
+        padding: 4px 11px;
+        background-color: #007BFF;
+        color: white;
+        border: none;
+        cursor: pointer;
+      }
   body
     h1 Editor Page
     ul
@@ -39,8 +88,8 @@ html
                 // Form for updating user
                 form(action="/forceUpload" method="POST")
                   input(type="hidden" name="id" value=user.id)
-                  input(type="hidden" name="userType" value=user.userType)
-                  input(type="text" name="username" value=user.username)
+                  input(type="text" name="username" value=user.username readonly)
                   input(type="text" name="email" value=user.email)
                   input(type="text" name="externalId" value=user.externalId)
+                  input(type="text" name="userType" value=user.userType readonly)
                   button(type="submit") Update

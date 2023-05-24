@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+const Logger_1 = require("./Logger");
 const essentials_1 = require("./essentials");
 const axios = require("axios");
 const express = require("express");
@@ -10,6 +11,7 @@ const port = 3000;
 const app = express();
 const upload = multer({ dest: "uploads/" });
 let essentials;
+const logger = new Logger_1.Logger('log.txt');
 app.set("views", path.join(__dirname, "views"));
 app.set("view engine", "pug");
 app.use(express.urlencoded({ extended: true }));
@@ -22,15 +24,12 @@ app.get("/success", (req, res) => {
     res.render("success", { message: req.query.message });
 });
 process.on("exit", (code) => {
-    // Cleanup code here
     console.log(`Exiting with code: ${code}`);
 });
 process.on("SIGTERM" || "SIGINT", () => {
-    // Graceful shutdown code here
-    console.log("Received SIGTERM. Gracefully shutting down...");
-    // Perform cleanup tasks, close connections, etc.
+    logger.log("Received SIGTERM. Gracefully shutting down...");
     server.close(() => {
-        console.log("Server closed.");
+        logger.log("Server closed.");
         process.exit(0);
     });
 });
@@ -39,20 +38,22 @@ app.post("/setEssentials", async (req, res) => {
     if (!req.body.publicKey ||
         !req.body.privateKey ||
         !req.body.identityProvider) {
+        logger.log(message);
         res.redirect(`/?message=${message}`);
     }
     const response = await getAuthKey(req.body.publicKey, req.body.privateKey);
     const identityProvider = req.body.identityProvider;
     const publickey = req.body.publicKey;
     const privateKey = req.body.privateKey;
-    console.log(response);
     if (response.errors[0] != null && response.errors[0].message != null) {
         message = response.errors[0].message;
+        logger.log(message);
         res.render("index", { publickey, identityProvider, message, privateKey });
     }
     else {
         essentials = new essentials_1.Essentials(response.authToken, req.body.identityProvider);
         message = "sucessfully aquired a key";
+        logger.log(message);
         res.render("index", { publickey, identityProvider, message });
     }
 });
@@ -61,8 +62,10 @@ app.get("/externalId", (req, res) => {
         !essentials.authKey ||
         !essentials.identityProvider) {
         let error = "no valid key or no identityProvider";
+        logger.log("error");
         res.redirect(`/?message=${error}`);
     }
+    logger.log("render");
     res.render("externalId");
 });
 app.get("/userInserter", (req, res) => {
@@ -70,13 +73,16 @@ app.get("/userInserter", (req, res) => {
         !essentials.authKey ||
         !essentials.identityProvider) {
         let error = "no valid key or no identityProvider";
+        logger.log("redirect error :" + error);
         res.redirect(`/?message=${error}`);
     }
+    logger.log("render UserInsterter");
     res.render("userInserter");
 });
 app.post("/upload", upload.single("file"), async (req, res) => {
     const file = req.file;
     if (!file) {
+        logger.log("render externalId");
         return res.render("externalId");
     }
     const filePath = file.path;
@@ -89,50 +95,43 @@ app.post("/upload", upload.single("file"), async (req, res) => {
     const successfulUsers = await convertUsers(externalset);
     essentials.conflictedUsers = conflictedUsers;
     essentials.successfullUsers = successfulUsers;
+    logger.log("render editor");
     res.render("editor", { conflictedUsers, successfulUsers });
 });
 app.post("/forceUpload", async (req, res) => {
-    console.log(req.body);
-    console.log("-----------------------");
     await setExternalId(essentials.authKey, req.body.id, essentials.identityProvider, req.body.externalId);
-    console.log("-----------------------");
     await setUserName(essentials.authKey, req.body.id, 22);
-    console.log("-----------------------");
     if (req.body.userType != 2) {
         await setUserEmail(essentials.authKey, req.body.id, req.body.email);
-        console.log("-----------------------");
     }
     else {
         await setConsultantEmail(essentials.authKey, req.body.id, req.body.email);
-        console.log("-----------------------");
     }
     essentials.successfullUsers.forEach(user => {
         if (user.id == req.body.id) {
             const index = essentials.successfullUsers.indexOf(user);
             essentials.successfullUsers.splice(index, 1);
-            console.log("do send");
             send();
         }
     });
     essentials.conflictedUsers.forEach(user => {
         if (user.id == req.body.id) {
-            const index = essentials.successfullUsers.indexOf(user);
-            essentials.successfullUsers.splice(index, 1);
-            console.log("do send");
+            const index = essentials.conflictedUsers.indexOf(user);
+            essentials.conflictedUsers.splice(index, 1);
             send();
         }
     });
     function send() {
-        console.log("send");
         essentials.successfullUsers.push(req.body);
         const conflictedUsers = essentials.conflictedUsers;
         const successfulUsers = essentials.successfullUsers;
+        logger.log("render editor");
         res.render("editor", { conflictedUsers, successfulUsers });
     }
 });
 // Start the server
 const server = app.listen(port, () => {
-    console.log(`Server listening on port ${port}`);
+    logger.log(`Server listening on port ${port}`);
 });
 async function RemoveDuplicateEmails(users) {
     const uniqueEmails = [...new Set(users.map((user) => user.email))];
@@ -223,6 +222,7 @@ async function getUsers(emails, authKey) {
         authToken: authKey,
         emails: emails,
     });
+    logger.log(response.data);
     return response.data.users;
 }
 async function setExternalId(authKey, userId, identityProvider, externalId) {
@@ -232,6 +232,7 @@ async function setExternalId(authKey, userId, identityProvider, externalId) {
         identityProvider: identityProvider,
         externalId: externalId,
     });
+    logger.log(response.data);
     return response.data.users;
 }
 async function setConsultantEmail(authKey, userId, email) {
@@ -240,36 +241,26 @@ async function setConsultantEmail(authKey, userId, email) {
         q4youID: userId,
         email: email,
     });
-    console.log(response.data);
+    logger.log(response.data);
     return response.data;
 }
 async function setUserEmail(authKey, userId, email) {
-    console.log({
-        authToken: authKey,
-        q4youID: userId,
-        email: email
-    });
     const response = await axios.post("https://ontwikkel.q1000.nl/authenticator/api/edituser", {
         authToken: authKey,
         q4youID: userId,
         email: email
     });
-    console.log(response.data);
+    logger.log(response.data);
     return response.data;
 }
 async function setUserName(authKey, userId, values) {
-    console.log({
-        authToken: authKey,
-        q4youID: userId,
-        email: values
-    });
     const response = await axios.post("https://ontwikkel.q1000.nl/q4u/api/getvalues", {
         authToken: authKey,
         q4youID: userId,
         itemType: 1,
         //values: values
     });
-    console.log(response.data);
+    logger.log(response.data);
     return response.data;
 }
 async function convertUsers(users) {

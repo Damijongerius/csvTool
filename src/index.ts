@@ -29,14 +29,11 @@ app.get("/success", (req, res) => {
 });
 
 process.on("exit", (code) => {
-  // Cleanup code here
   console.log(`Exiting with code: ${code}`);
 });
 
 process.on("SIGTERM" || "SIGINT", () => {
-  // Graceful shutdown code here
   logger.log("Received SIGTERM. Gracefully shutting down...");
-  // Perform cleanup tasks, close connections, etc.
   server.close(() => {
     logger.log("Server closed.");
     process.exit(0);
