@@ -61,6 +61,7 @@ app.post("/setEssentials", async (req, res) => {
 
   if (response.errors[0] != null && response.errors[0].message != null) {
     message = response.errors[0].message;
+    logger.log(message);
     res.render("index", { publickey, identityProvider, message, privateKey });
   } else {
     essentials = new Essentials(response.authToken, req.body.identityProvider);
