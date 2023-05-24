@@ -205,8 +205,8 @@ async function setEmail(authKey, userId, email) {
 async function setUserName(authKey, userId, values) {
     const response = await axios.post("https://ontwikkel.q1000.nl/q4u/api/getvalues", {
         authToken: authKey,
-        userId: userId,
-        itemType: 21,
+        q4youID: userId,
+        itemType: 1,
         //values: values
     });
     console.log(response.data);

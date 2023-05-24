@@ -281,8 +281,8 @@ async function setUserName(authKey, userId, values){
     "https://ontwikkel.q1000.nl/q4u/api/getvalues",
     {
       authToken: authKey,
-      userId: userId,
-      itemType: 21,
+      q4youID: userId,
+      itemType: 1,
       //values: values
     }
   );
